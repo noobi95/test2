@@ -1,0 +1,50 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Zeiterfassung starten</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeModal()">Abbrechen</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  
+  <ion-list>
+    
+    {/* 1. Typ-Auswahl */}
+    <ion-item>
+      <ion-select label="Erfassungsart" label-placement="stacked" placeholder="Bitte wählen..." [(ngModel)]="selectedTypeId" (ionChange)="onTypeChange($event)">
+        <ion-select-option *ngFor="let type of types" [value]="type.id">
+          {{ type.name }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    {/* 2. Unterkategorie (Nur anzeigen, wenn vorhanden) */}
+    <ion-item *ngIf="subcategories.length > 0">
+      <ion-select label="Unterkategorie" label-placement="stacked" placeholder="Bitte wählen..." [(ngModel)]="selectedSubcategoryId">
+        <ion-select-option *ngFor="let sub of subcategories" [value]="sub.id">
+          {{ sub.name }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    {/* 3. Schicht-Zuordnung (3-Tages-Fenster: Gestern bis Morgen) */}
+    <ion-item>
+      <ion-select label="Schicht / Termin zuordnen" label-placement="stacked" placeholder="Optional..." [(ngModel)]="selectedAppointmentId">
+        <ion-select-option [value]="null">-- Nicht zugeordnet (Später zuweisen) --</ion-select-option>
+        <ion-select-option *ngFor="let app of appointments" [value]="app.id">
+          {{ app.start_time | date:'shortDate' }} - {{ app.title }} ({{ app.location || 'Kein Ort' }})
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+  </ion-list>
+
+  <div class="ion-margin-top">
+    <ion-button expand="block" color="primary" (click)="startTracking()" [disabled]="!selectedTypeId">
+      Jetzt starten
+    </ion-button>
+  </div>
+
+</ion-content>

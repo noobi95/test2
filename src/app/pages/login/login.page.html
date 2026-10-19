@@ -1,0 +1,15 @@
+<ion-content class="ion-padding ion-text-center">
+  <div class="login-container" style="margin-top: 20vh;">
+    <h2>Railshift Login</h2>
+    
+    <ion-item class="ion-margin-bottom">
+      <ion-input label="E-Mail" label-placement="stacked" type="email" [(ngModel)]="email" placeholder="name@mh-ebs.de"></ion-input>
+    </ion-item>
+
+    <ion-item class="ion-margin-bottom">
+      <ion-input label="Passwort" label-placement="stacked" type="password" [(ngModel)]="password" placeholder="********"></ion-input>
+    </ion-item>
+
+    <ion-button expand="block" (click)="onLogin()">Anmelden</ion-button>
+  </div>
+</ion-content>

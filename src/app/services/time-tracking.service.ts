@@ -1,31 +1,77 @@
-async stopTracking(activeTrackingId: number) {
-  try {
-    // Finalen GPS-Standort beim Stoppen ermitteln
-    const coordinates = await Geolocation.getCurrentPosition();
-    const lat = coordinates.coords.latitude;
-    const lng = coordinates.coords.longitude;
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Geolocation } from '@capacitor/geolocation';
+import { Observable, from } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 
+@Injectable({
+  providedIn: 'root'
+})
+export class TimeTrackingService {
+
+  // Passe hier deine Netcup-Domain an
+  private apiUrl = 'https://ucp.mh-ebs.de/api';
+
+  constructor(private http: HttpClient) {}
+
+  // 1. Schichten von gestern bis morgen laden (3-Tages-Fenster)
+  getActiveAppointments(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/user/active-appointments`);
+  }
+
+  // 2. Erfassungstypen & Unterkategorien laden
+  getTypes(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/time-trackings/types`);
+  }
+
+  // 3. Zeiterfassung starten (inkl. automatischem GPS-Standort)
+  startTracking(typeId: number, subcategoryId: number | null, appointmentId: number | null): Observable<any> {
+    // Wir holen zuerst den GPS-Standort und senden dann den Request ab
+    return from(Geolocation.getCurrentPosition()).pipe(
+      switchMap(position => {
+        const payload = {
+          type_id: typeId,
+          subcategory_id: subcategoryId,
+          appointment_id: appointmentId,
+          start_lat: position.coords.latitude,
+          start_lng: position.coords.longitude
+        };
+        return this.http.post(`${this.apiUrl}/time-trackings/start`, payload);
+      })
+    );
+  }
+
+  // Fallback, falls GPS fehlschlägt oder blockiert wird
+  startTrackingWithoutGps(typeId: number, subcategoryId: number | null, appointmentId: number | null): Observable<any> {
     const payload = {
-      end_lat: lat,
-      end_lng: lng
+      type_id: typeId,
+      subcategory_id: subcategoryId,
+      appointment_id: appointmentId,
+      start_lat: null,
+      start_lng: null
     };
+    return this.http.post(`${this.apiUrl}/time-trackings/start`, payload);
+  }
 
-    this.http.post(`${this.apiUrl}/time-trackings/${activeTrackingId}/stop`, payload).subscribe((res: any) => {
-      console.log('Zeiterfassung erfolgreich beendet', res);
-      // UI aktualisieren (Timer stoppen, Status auf "beendet" setzen)
-    });
+  // 4. Zeiterfassung stoppen (inkl. finalem GPS-Standort)
+  stopTracking(trackingId: number): Observable<any> {
+    return from(Geolocation.getCurrentPosition()).pipe(
+      switchMap(position => {
+        const payload = {
+          end_lat: position.coords.latitude,
+          end_lng: position.coords.longitude
+        };
+        return this.http.post(`${this.apiUrl}/time-trackings/${trackingId}/stop`, payload);
+      })
+    );
+  }
 
-  } catch (error) {
-    console.warn('GPS beim Stoppen nicht verfügbar, beende ohne Standort', error);
-
-    // Fallback ohne GPS
+  // Fallback zum Stoppen ohne GPS
+  stopTrackingWithoutGps(trackingId: number): Observable<any> {
     const payload = {
       end_lat: null,
       end_lng: null
     };
-
-    this.http.post(`${this.apiUrl}/time-trackings/${activeTrackingId}/stop`, payload).subscribe((res: any) => {
-      // UI aktualisieren
-    });
+    return this.http.post(`${this.apiUrl}/time-trackings/${trackingId}/stop`, payload);
   }
 }
